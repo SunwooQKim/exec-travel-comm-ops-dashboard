@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      POSTGRES_USER: commops
+      POSTGRES_PASSWORD: commops
+      POSTGRES_DB: commops
+    ports:
+      - "5432:5432"
+    volumes:
+      - comm_ops_pg:/var/lib/postgresql/data
+
+volumes:
+  comm_ops_pg:

@@ -1,0 +1,17 @@
+{
+  "name": "comm-ops-dashboard",
+  "private": true,
+  "description": "Full-stack operations dashboard: travel cohorts, map layers, equipment readiness, and field issue knowledge log (TypeScript monorepo).",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "dev:api": "npm run dev -w apps/api",
+    "build": "npm run build -w packages/core && npm run build -w apps/web",
+    "build:api": "npm run build -w apps/api",
+    "db:generate": "npm run db:generate -w apps/api",
+    "db:push": "npm run db:push -w apps/api"
+  }
+}

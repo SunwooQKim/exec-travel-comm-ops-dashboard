@@ -1,0 +1,29 @@
+{
+  "name": "apps-web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@comm-ops/core": "*",
+    "@googlemaps/js-api-loader": "^1.16.8",
+    "@googlemaps/markerclusterer": "^2.5.3",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.460.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/google.maps": "^3.58.1",
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "~5.6.2",
+    "vite": "^5.4.11"
+  }
+}

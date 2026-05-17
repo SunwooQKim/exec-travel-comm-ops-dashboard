@@ -6,6 +6,24 @@ This project demonstrates production-minded patterns: **Zod-validated schemas**,
 
 ---
 
+## Workspaces (two dashboards)
+
+On launch you pick a workspace:
+
+| Workspace | Who it's for | Capabilities |
+|-----------|----------------|--------------|
+| **Command post** | Admin / ops staff | Full CRUD, command post panel, map pick, import/export, push to API (admin login). |
+| **Leadership brief** | Senior leaders | Read-only: larger map-first layout, KPI strip, mission digest, timeline replay. No edits or API writes. |
+
+Demo API accounts (after `npm run db:push`):
+
+- Admin: `admin@local.test` / `changeme` — can **GET** and **PUT** `/api/ops`
+- Leader: `leader@local.test` / `viewonly` — can **GET** only
+
+Use **Switch workspace** in the header to return to the picker.
+
+---
+
 ## Summary
 
 | Area | What it does |

@@ -33,6 +33,18 @@ async function ensureAdminUser() {
   console.log(`Seeded admin user ${email} / ${password}`);
 }
 
+async function ensureLeaderUser() {
+  const email = process.env.LEADER_EMAIL ?? "leader@local.test";
+  const password = process.env.LEADER_PASSWORD ?? "viewonly";
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return;
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.create({
+    data: { email, passwordHash, role: "leader" },
+  });
+  console.log(`Seeded leader (read-only) user ${email} / ${password}`);
+}
+
 async function auth(request: FastifyRequest, reply: FastifyReply) {
   try {
     await request.jwtVerify();
@@ -43,6 +55,7 @@ async function auth(request: FastifyRequest, reply: FastifyReply) {
 
 export async function buildServer() {
   await ensureAdminUser();
+  await ensureLeaderUser();
 
   const app = Fastify({ logger: true });
 
@@ -62,7 +75,7 @@ export async function buildServer() {
       return reply.status(401).send({ error: "Invalid credentials" });
     }
     const token = app.jwt.sign({ sub: user.id, role: user.role, email: user.email });
-    return { token };
+    return { token, role: user.role, email: user.email };
   });
 
   app.get("/api/ops", { preHandler: auth }, async () => {
@@ -71,7 +84,11 @@ export async function buildServer() {
   });
 
   app.put<{ Body: unknown }>("/api/ops", { preHandler: auth }, async (request, reply) => {
-    const userId = (request.user as { sub: string }).sub;
+    const user = request.user as { sub: string; role?: string };
+    if (user.role !== "admin") {
+      return reply.status(403).send({ error: "Forbidden — admin role required to save" });
+    }
+    const userId = user.sub;
     let body: OpsDataset;
     try {
       body = OpsDatasetSchema.parse(request.body);

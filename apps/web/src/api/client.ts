@@ -26,7 +26,7 @@ export function createApiClient(opts: { getToken: () => string }) {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      return (await res.json()) as { token: string };
+      return (await res.json()) as { token: string; role: string; email: string };
     },
     async getDataset(): Promise<OpsDataset | null> {
       const res = await req("/api/ops");

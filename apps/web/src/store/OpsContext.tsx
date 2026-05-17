@@ -24,6 +24,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSession } from "./SessionContext";
 
 export type MapLayers = {
   people: boolean;
@@ -66,6 +67,9 @@ type OpsCtx = {
   deleteSubTeam: (id: string) => void;
   deletePerson: (id: string) => void;
   deleteEquipment: (id: string) => void;
+  canWrite: boolean;
+  /** Load remote snapshot without persisting writes (leaders + admins refreshing from API). */
+  loadDatasetSnapshot: (snapshot: OpsDataset) => void;
 };
 
 const Ctx = createContext<OpsCtx | null>(null);
@@ -75,6 +79,7 @@ function bumpUpdated(ds: OpsDataset): OpsDataset {
 }
 
 export function OpsProvider({ children }: { children: ReactNode }) {
+  const { canWrite } = useSession();
   const [dataset, setDatasetState] = useState<OpsDataset>(() => {
     const stored = typeof localStorage !== "undefined" ? loadDatasetFromLocalStorage() : null;
     return stored ?? createSeedDataset();
@@ -102,45 +107,59 @@ export function OpsProvider({ children }: { children: ReactNode }) {
   const effectivePeople = replayFrame?.people ?? dataset.people;
   const effectiveEquipment = replayFrame?.equipment ?? dataset.equipment;
 
-  const setDataset = useCallback((input: SetDatasetInput) => {
-    setDatasetState((prev) => {
-      const next = typeof input === "function" ? input(prev) : input;
-      return bumpUpdated(next);
-    });
-  }, []);
+  const setDataset = useCallback(
+    (input: SetDatasetInput) => {
+      if (!canWrite) return;
+      setDatasetState((prev) => {
+        const next = typeof input === "function" ? input(prev) : input;
+        return bumpUpdated(next);
+      });
+    },
+    [canWrite],
+  );
 
   useEffect(() => {
+    if (!canWrite) return;
     saveDatasetToLocalStorage(dataset);
-  }, [dataset]);
+  }, [dataset, canWrite]);
 
   const importJson = useCallback(
     (raw: string) => {
+      if (!canWrite) return;
       const parsed = normalizeCommOpsDataset(OpsDatasetSchema.parse(JSON.parse(raw) as unknown));
       setDataset(parsed);
       setReplayTimeMs(null);
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const exportJson = useCallback(() => JSON.stringify(dataset, null, 2), [dataset]);
 
+  const loadDatasetSnapshot = useCallback((snapshot: OpsDataset) => {
+    setDatasetState(normalizeCommOpsDataset(snapshot));
+    setReplayTimeMs(null);
+  }, []);
+
   const resetToSeed = useCallback(() => {
+    if (!canWrite) return;
     setDataset(createSeedDataset());
     setReplayTimeMs(null);
     setSelection(null);
-  }, [setDataset]);
+  }, [setDataset, canWrite]);
 
   const addEvent = useCallback(
     (e: Omit<OpsEvent, "id"> & { id?: string }) => {
+      if (!canWrite) return;
       const id = e.id ?? `ev-${crypto.randomUUID()}`;
       const full = OpsEventSchema.parse({ ...e, id });
       setDataset((prev) => ({ ...prev, events: [...prev.events, full] }));
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const upsertPerson = useCallback(
     (p: Person) => {
+      if (!canWrite) return;
       setDataset((prev) => {
         const idx = prev.people.findIndex((x) => x.id === p.id);
         const people =
@@ -148,11 +167,12 @@ export function OpsProvider({ children }: { children: ReactNode }) {
         return { ...prev, people };
       });
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const upsertEquipment = useCallback(
     (eq: Equipment) => {
+      if (!canWrite) return;
       setDataset((prev) => {
         const idx = prev.equipment.findIndex((x) => x.id === eq.id);
         const equipment =
@@ -162,11 +182,12 @@ export function OpsProvider({ children }: { children: ReactNode }) {
         return { ...prev, equipment };
       });
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const deletePerson = useCallback(
     (id: string) => {
+      if (!canWrite) return;
       setDataset((prev) => ({ ...prev, people: prev.people.filter((p) => p.id !== id) }));
       setSelection((s) => {
         if (s?.kind === "person" && s.id === id) return null;
@@ -179,19 +200,21 @@ export function OpsProvider({ children }: { children: ReactNode }) {
         return s;
       });
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const deleteEquipment = useCallback(
     (id: string) => {
+      if (!canWrite) return;
       setDataset((prev) => ({ ...prev, equipment: prev.equipment.filter((e) => e.id !== id) }));
       setSelection((s) => (s?.kind === "equipment" && s.id === id ? null : s));
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const upsertSubTeam = useCallback(
     (st: SubTeam) => {
+      if (!canWrite) return;
       setDataset((prev) => {
         const idx = prev.subTeams.findIndex((x) => x.id === st.id);
         const subTeams =
@@ -199,11 +222,12 @@ export function OpsProvider({ children }: { children: ReactNode }) {
         return { ...prev, subTeams };
       });
     },
-    [setDataset],
+    [setDataset, canWrite],
   );
 
   const deleteSubTeam = useCallback(
     (id: string) => {
+      if (!canWrite) return;
       setDataset((prev) => {
         const target = prev.subTeams.find((s) => s.id === id);
         if (!target) return prev;
@@ -248,6 +272,8 @@ export function OpsProvider({ children }: { children: ReactNode }) {
     deleteSubTeam,
     deletePerson,
     deleteEquipment,
+    canWrite,
+    loadDatasetSnapshot,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

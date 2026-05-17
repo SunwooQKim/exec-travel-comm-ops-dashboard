@@ -104,6 +104,7 @@ export function CommandMap({ people, equipment, sites }: CommandMapProps) {
     upsertPerson,
     upsertEquipment,
     addEvent,
+    canWrite,
   } = useOps();
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -174,7 +175,7 @@ export function CommandMap({ people, equipment, sites }: CommandMapProps) {
       clickListenerRef.current = null;
     }
 
-    if (pickMode && mapPickTarget) {
+    if (canWrite && pickMode && mapPickTarget) {
       clickListenerRef.current = map.addListener("click", (e: google.maps.MapMouseEvent) => {
         const ll = e.latLng;
         if (!ll || !mapPickTarget) return;
@@ -231,6 +232,7 @@ export function CommandMap({ people, equipment, sites }: CommandMapProps) {
       }
     };
   }, [
+    canWrite,
     pickMode,
     mapPickTarget,
     people,
@@ -464,32 +466,12 @@ export function CommandMap({ people, equipment, sites }: CommandMapProps) {
           opacity: keyMissing ? 0.25 : 1,
         }}
       />
-      {pickMode && (
+      {canWrite && pickMode && (
         <div
           className="chip chip-active"
           style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 3 }}
         >
           Map pick active — click the map to drop coordinates
-        </div>
-      )}
-      {!keyMissing && layers.people && (
-        <div
-          className="chip"
-          style={{
-            position: "absolute",
-            bottom: 56,
-            left: 12,
-            zIndex: 3,
-            maxWidth: 280,
-            fontSize: 11,
-            lineHeight: 1.4,
-            textAlign: "left",
-          }}
-        >
-          <strong style={{ display: "block", marginBottom: 4 }}>Personnel</strong>
-          <strong>Cyan ring</strong> = rear pool at <strong>The Pentagon, Arlington VA</strong> (fixed map
-          point — not from editable site rows). Colored circles = forward-deployed; same color = one cohort,
-          gray = mixed cohorts. Click for roster.
         </div>
       )}
       <SelectionCard
